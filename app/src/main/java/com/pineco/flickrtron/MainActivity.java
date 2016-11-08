@@ -4,8 +4,10 @@ package com.pineco.flickrtron;
 import android.content.Context;
 
 import android.content.SharedPreferences;
+import android.media.Image;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -16,8 +18,16 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.EditText;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import com.squareup.picasso.Picasso;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -31,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
     EditText tag;
     TextView responseView;
     ProgressBar progressBar;
+    String url;
 
     static final String API_KEY = "379c73dfd6eede56394f7dc6ab60921a";
     static final String API_URL = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
@@ -85,7 +96,10 @@ public class MainActivity extends AppCompatActivity {
             Log.e("StorageExample", e.getMessage());
         }
     }
-
+    public void populateImages() {
+        ImageView iv = (ImageView)findViewById(R.id.flickrPhoto0);
+        Picasso.with(this).load(url).into(iv);
+    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -149,19 +163,17 @@ public class MainActivity extends AppCompatActivity {
             responseView.setText(response);
             // TODO: check this.exception
             // TODO: do something with the feed
-
-//            try {
-//                JSONObject object = (JSONObject) new JSONTokener(response).nextValue();
-//                String requestID = object.getString("requestId");
-//                int likelihood = object.getInt("likelihood");
-//                JSONArray photos = object.getJSONArray("photos");
-//                .
-//                .
-//                .
-//                .
-//            } catch (JSONException e) {
-//                e.printStackTrace();
-//            }
+            try {
+                JSONObject object = (JSONObject) new JSONTokener(response).nextValue();
+                JSONObject photos = object.getJSONObject("photos");
+                JSONArray photoArray = photos.getJSONArray("photo");
+                JSONObject p1 = photoArray.getJSONObject(0);
+                url = "http://farm" + p1.get("farm") + ".static.flickr.com/"
+                        + p1.getString("server") + "/" + p1.getString("id") + "_" + p1.getString("secret") + "_m.jpg";
+                populateImages();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
     }
 

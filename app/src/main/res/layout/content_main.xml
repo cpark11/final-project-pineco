@@ -50,5 +50,20 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
         </ScrollView>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_marginTop="270dp"
+            android:layout_below="@+id/progressBar"
+            android:layout_toEndOf="@+id/progressBar"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/flickrPhoto0"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                />
+
+        </ScrollView>
     </RelativeLayout>
 </LinearLayout>
