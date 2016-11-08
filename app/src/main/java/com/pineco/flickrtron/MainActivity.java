@@ -1,5 +1,6 @@
 package com.pineco.flickrtron;
 
+import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -16,6 +17,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -43,6 +46,35 @@ public class MainActivity extends AppCompatActivity {
                 new RetrieveFeedTask().execute(tag.getText().toString());
             }
         });
+        String FILENAME = "search_history";
+        try {
+            FileInputStream fis = openFileInput(FILENAME);
+            StringBuilder builder = new StringBuilder();
+            int ch;
+            while((ch = fis.read()) != -1){
+                builder.append((char)ch);
+            }
+            tag.setText(builder.toString());
+            fis.close();
+        }catch(Exception e) {
+            Log.e("StorageExample", e.getMessage());
+        }
+    }
+    protected void onStop() {
+        super.onStop();
+
+        // Using a file
+        String FILENAME = "search_history";
+        EditText tag = (EditText)findViewById(R.id.tag);
+        String string = tag.getText().toString();
+        try {
+            FileOutputStream fos = openFileOutput(FILENAME, Context.MODE_PRIVATE);
+            fos.write(string.getBytes());
+            fos.close();
+        }catch(Exception e) {
+            Log.e("StorageExample", e.getMessage());
+        }
+
     }
 
     @Override
