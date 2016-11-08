@@ -3,11 +3,14 @@ package com.pineco.flickrtron;
 
 import android.content.Context;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.Image;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.CoordinatorLayout;
+import android.provider.MediaStore;
+
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -47,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
     static final String API_URL = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
 
     public static final String PREFS_NAME = "PrefsFile";
+    static final int REQUEST_IMAGE_CAPTURE = 1;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,8 +64,10 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Open Camera", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+                }
             }
         });
 
@@ -82,19 +89,6 @@ public class MainActivity extends AppCompatActivity {
                 new RetrieveFeedTask().execute(tag.getText().toString());
             }
         });
-        String FILENAME = "search_history";
-        try {
-            FileInputStream fis = openFileInput(FILENAME);
-            StringBuilder builder = new StringBuilder();
-            int ch;
-            while((ch = fis.read()) != -1){
-                builder.append((char)ch);
-            }
-            tag.setText(builder.toString());
-            fis.close();
-        }catch(Exception e) {
-            Log.e("StorageExample", e.getMessage());
-        }
     }
     public void populateImages() {
         ImageView iv = (ImageView)findViewById(R.id.flickrPhoto0);
