@@ -1,6 +1,9 @@
 package com.pineco.flickrtron;
 
+
 import android.content.Context;
+
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -25,16 +28,26 @@ import java.net.URL;
 
 public class MainActivity extends AppCompatActivity {
 
-    static EditText tag;
+    EditText tag;
     TextView responseView;
     ProgressBar progressBar;
 
     static final String API_KEY = "379c73dfd6eede56394f7dc6ab60921a";
     static final String API_URL = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
+
+    public static final String PREFS_NAME = "PrefsFile";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Restore preferences
+        SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+        String editTextValue = settings.getString("editTextValue", "none");
+
+        EditText pastSearch = (EditText)findViewById(R.id.tag);
+        pastSearch.setText(editTextValue);
+
         responseView = (TextView) findViewById(R.id.responseView);
         tag = (EditText) findViewById(R.id.tag);
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
@@ -59,22 +72,6 @@ public class MainActivity extends AppCompatActivity {
         }catch(Exception e) {
             Log.e("StorageExample", e.getMessage());
         }
-    }
-    protected void onStop() {
-        super.onStop();
-
-        // Using a file
-        String FILENAME = "search_history";
-        EditText tag = (EditText)findViewById(R.id.tag);
-        String string = tag.getText().toString();
-        try {
-            FileOutputStream fos = openFileOutput(FILENAME, Context.MODE_PRIVATE);
-            fos.write(string.getBytes());
-            fos.close();
-        }catch(Exception e) {
-            Log.e("StorageExample", e.getMessage());
-        }
-
     }
 
     @Override
@@ -108,9 +105,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         protected String doInBackground(String... args) {
-            String keyword = args[0];
-            // Do some validation here
-
             try {
                 URL url = new URL(API_URL + "&per_page=5&nojsoncallback=1&format=json&tags=" + args[0] + "&api_key=" + API_KEY);
                 HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
@@ -157,6 +151,22 @@ public class MainActivity extends AppCompatActivity {
 //                e.printStackTrace();
 //            }
         }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        // Using Preferences
+        // We need an Editor object to make preference changes.
+        // All objects are from android.context.Context
+        SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+        SharedPreferences.Editor editor = settings.edit();
+        EditText editText = (EditText) findViewById(R.id.tag);
+        editor.putString("editTextValue", editText.getText().toString());
+
+        // Commit the edits!
+        editor.commit();
     }
 
 }
