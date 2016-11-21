@@ -14,6 +14,9 @@ import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -40,13 +43,14 @@ import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
     EditText tag;
-    TextView responseView;
+//    TextView responseView;
     ProgressBar progressBar;
-    String url;
+    String url, caption;
 
     static final String API_KEY = "379c73dfd6eede56394f7dc6ab60921a";
     static final String API_URL = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
@@ -81,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
         EditText search = (EditText)findViewById(R.id.tag);
         search.setText(editTextValue);
 
-        responseView = (TextView) findViewById(R.id.responseView);
+//        responseView = (TextView) findViewById(R.id.responseView);
         tag = (EditText) findViewById(R.id.tag);
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
 
@@ -98,10 +102,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
     }
-    public void populateImages() {
-        ImageView iv = (ImageView)findViewById(R.id.flickrPhoto0);
-        Picasso.with(this).load(url).into(iv);
-    }
+//    public void populateImages() {
+//        ImageView iv = (ImageView)findViewById(R.id.flickrPhoto0);
+//        Picasso.with(this).load(url).into(iv);
+//    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -129,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
 
         protected void onPreExecute() {
             progressBar.setVisibility(View.VISIBLE);
-            responseView.setText("");
+            //responseView.setText("");
         }
 
         protected String doInBackground(String... args) {
@@ -162,17 +166,38 @@ public class MainActivity extends AppCompatActivity {
             }
             progressBar.setVisibility(View.GONE);
             Log.i("INFO", response);
-            responseView.setText(response);
+//            responseView.setText(response);
             // TODO: check this.exception
             // TODO: do something with the feed
             try {
+                RecyclerView recyclerView = (RecyclerView)findViewById(R.id.recycler_view);
+                recyclerView.setHasFixedSize(true);
+                LinearLayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
+                layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+                recyclerView.setLayoutManager(layoutManager);
+
+                //Fill list of images for recyclerview
+                ArrayList<FlickrImage> imageList = new ArrayList<>();
                 JSONObject object = (JSONObject) new JSONTokener(response).nextValue();
                 JSONObject photos = object.getJSONObject("photos");
                 JSONArray photoArray = photos.getJSONArray("photo");
-                JSONObject p1 = photoArray.getJSONObject(0);
-                url = "http://farm" + p1.get("farm") + ".static.flickr.com/"
-                        + p1.getString("server") + "/" + p1.getString("id") + "_" + p1.getString("secret") + "_m.jpg";
-                populateImages();
+
+                for(int i = 0; i < photoArray.length(); i++){
+                    JSONObject p = photoArray.getJSONObject(i);
+                    FlickrImage f = new FlickrImage(p.getString("id"), p.getString("secret"),
+                            p.getString("server"), p.getInt("farm"), p.getString("title"));
+                    imageList.add(f);
+                }
+
+                DataAdapter adapter = new DataAdapter(getApplicationContext(),imageList);
+                recyclerView.setAdapter(adapter);
+
+
+//                JSONObject p1 = photoArray.getJSONObject(0);
+//                url = "http://farm" + p1.get("farm") + ".static.flickr.com/"
+//                        + p1.getString("server") + "/" + p1.getString("id") + "_" + p1.getString("secret") + "_m.jpg";
+                //populateImages();
+
             } catch (JSONException e) {
                 e.printStackTrace();
             }
