@@ -24,15 +24,6 @@
         android:imeOptions="actionDone"
         android:hint="Current Location"/>
 
-    <ImageButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end"
-        android:layout_alignRight="@id/tag"
-        style="@style/Base.Widget.AppCompat.Button.Borderless"
-        android:background="@color/lightGrey"
-        android:src="@drawable/map_marker"/>
-
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"
@@ -49,4 +40,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/locationButton"
+        android:layout_gravity="end"
+        android:layout_alignRight="@id/tag"
+        android:clickable="true"
+        style="@style/Base.Widget.AppCompat.Button.Borderless"
+        android:background="@color/lightGrey"
+        android:src="@drawable/map_marker"/>
 </RelativeLayout>
