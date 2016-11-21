@@ -5,6 +5,9 @@ import android.content.Context;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.media.Image;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -23,10 +26,13 @@ import android.view.MenuItem;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationServices;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
@@ -47,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     TextView responseView;
     ProgressBar progressBar;
     String url;
+    LocationManager locationManager;
 
     static final String API_KEY = "379c73dfd6eede56394f7dc6ab60921a";
     static final String API_URL = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
@@ -59,7 +66,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
+        ImageButton locationButton = (ImageButton)findViewById(R.id.locationButton);
+        locationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) throws SecurityException{
+                Location location= locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                searchWithLocation(location.getLatitude(), location.getLongitude());
+            }
+        });
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -97,6 +112,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+    public void searchWithLocation(double lat, double longi){
+        new RetrieveFeedTask().execute(lat+", "+longi);
     }
     public void populateImages() {
         ImageView iv = (ImageView)findViewById(R.id.flickrPhoto0);
