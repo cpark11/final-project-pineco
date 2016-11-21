@@ -16,9 +16,11 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -48,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
 
     static final String API_KEY = "379c73dfd6eede56394f7dc6ab60921a";
     static final String API_URL = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
+    private static final int PERMISSION_ACCESS_COARSE_LOCATION = 1;
 
     public static final String PREFS_NAME = "PrefsFile";
     static final int REQUEST_IMAGE_CAPTURE = 1;
@@ -75,20 +78,25 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
         String editTextValue = settings.getString("editTextValue", "none");
 
-        EditText pastSearch = (EditText)findViewById(R.id.tag);
-        pastSearch.setText(editTextValue);
+        EditText search = (EditText)findViewById(R.id.tag);
+        search.setText(editTextValue);
 
         responseView = (TextView) findViewById(R.id.responseView);
         tag = (EditText) findViewById(R.id.tag);
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
 
-        Button queryButton = (Button) findViewById(R.id.queryButton);
-        queryButton.setOnClickListener(new View.OnClickListener() {
+        // Set Search EditText onActionDone Listener
+        search.setOnEditorActionListener(new EditText.OnEditorActionListener() {
             @Override
-            public void onClick(View v) {
-                new RetrieveFeedTask().execute(tag.getText().toString());
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    new RetrieveFeedTask().execute(tag.getText().toString());
+                    return true;
+                }
+                return false;
             }
         });
+
     }
     public void populateImages() {
         ImageView iv = (ImageView)findViewById(R.id.flickrPhoto0);
