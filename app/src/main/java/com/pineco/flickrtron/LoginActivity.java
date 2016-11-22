@@ -27,6 +27,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
+import android.webkit.WebView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
@@ -99,6 +100,7 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
+
         Button mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
         mEmailSignInButton.setOnClickListener(new OnClickListener() {
             @Override
@@ -110,17 +112,6 @@ public class LoginActivity extends AppCompatActivity {
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
     }
-
-
-
-
-
-
-    /**
-     * Attempts to sign in or register the account specified by the login form.
-     * If there are form errors (invalid email, missing fields, etc.), the
-     * errors are presented and no actual login attempt is made.
-     */
     class Authenticator extends AsyncTask<Void, Void, String> {
 
         private Exception exception;
@@ -171,8 +162,12 @@ public class LoginActivity extends AppCompatActivity {
                     hashtext = "0"+hashtext;
                 }
                 Log.d("myHash",AUTH_URL+frob+"&api_sig="+hashtext);
-                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(AUTH_URL+frob+"&api_sig="+hashtext));
-                startActivity(browserIntent);
+                WebView myWebView = (WebView) findViewById(R.id.webview);
+                myWebView.loadUrl(AUTH_URL+frob+"&api_sig="+hashtext);
+                //Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(AUTH_URL+frob+"&api_sig="+hashtext));
+                //startActivity(browserIntent);
+                Intent intent = new Intent(getApplicationContext(),MainActivity.class);
+                startActivity(intent);
             }
             catch(Exception e) {
                 Log.e("ERROR", e.getMessage(), e);

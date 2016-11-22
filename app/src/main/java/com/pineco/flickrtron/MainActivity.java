@@ -9,6 +9,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.media.Image;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.CoordinatorLayout;
@@ -61,10 +62,12 @@ public class MainActivity extends AppCompatActivity {
 
     static final String API_KEY = "379c73dfd6eede56394f7dc6ab60921a";
     static final String API_URL = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
+    static final String LOC_URL = "https://api.flickr.com/services/rest/?method=flickr.places.findbyLatLon&nojsoncallback=1&api_key=379c73dfd6eede56394f7dc6ab60921a";
     private static final int PERMISSION_ACCESS_COARSE_LOCATION = 1;
 
     public static final String PREFS_NAME = "PrefsFile";
     static final int REQUEST_IMAGE_CAPTURE = 1;
+    public String myLocation = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,12 +79,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) throws SecurityException{
                 Location location= locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-//                searchWithLocation(location.getLatitude(), location.getLongitude());
-                tag.setText(location.getLatitude()+"");
+                searchWithLocation(location.getLatitude(), location.getLongitude());
+                //searchWithLocation(38.01538, -78.30396);
             }
         });
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        //Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        //setSupportActionBar(toolbar);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -120,7 +123,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void searchWithLocation(double lat, double longi){
-        new RetrieveFeedTask().execute(lat+", "+longi);
+        String[] latlon = {lat+"",longi+""};
+        new Locator().execute(latlon);
     }
 
     @Override
@@ -198,7 +202,6 @@ public class MainActivity extends AppCompatActivity {
                 JSONObject object = (JSONObject) new JSONTokener(response).nextValue();
                 JSONObject photos = object.getJSONObject("photos");
                 JSONArray photoArray = photos.getJSONArray("photo");
-
                 for(int i = 0; i < photoArray.length(); i++){
                     JSONObject p = photoArray.getJSONObject(i);
                     FlickrImage f = new FlickrImage(p.getString("id"), p.getString("secret"),
@@ -216,9 +219,67 @@ public class MainActivity extends AppCompatActivity {
                 //populateImages();
 
             } catch (JSONException e) {
-                e.printStackTrace();
+                setTextField("No Photos");
             }
         }
+    }
+    class Locator extends AsyncTask<String[], Void, String> {
+        private Exception exception;
+        protected void onPreExecute() {
+        }
+
+        protected String doInBackground(String[]... args) {
+            try {
+                URL url = new URL(LOC_URL + "&lat=" + args[0][0] +"&lon=" + args[0][1]+"&format=json");
+                Log.d("lat",args[0][0]);
+                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                try {
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String line;
+                    while ((line = bufferedReader.readLine()) != null) {
+                        stringBuilder.append(line).append("\n");
+                    }
+                    bufferedReader.close();
+                    return stringBuilder.toString();
+                }
+                finally{
+                    urlConnection.disconnect();
+                }
+            }
+            catch(Exception e) {
+                Log.e("ERROR", e.getMessage(), e);
+                return null;
+            }
+        }
+
+        protected void onPostExecute(String response) {
+            if(response == null) {
+                response = "THERE WAS AN ERROR";
+            }
+            Log.i("INFO", response);
+            try {
+                JSONObject jsonreader = (JSONObject) new JSONTokener(response).nextValue();
+                JSONObject places = jsonreader.getJSONObject("places");
+                JSONArray place = places.getJSONArray("place");
+                JSONObject myPlace = place.getJSONObject(0);
+                myLocation=myPlace.getString("name").split(",")[0];
+                setTextField(myLocation);
+                Log.d("search",myLocation);
+                myLocation=myLocation.replace(" ","_");
+                new RetrieveFeedTask().execute(myLocation);
+                // TODO: check this.exception
+                // TODO: do something with the feed
+            }
+            catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
+    private void setTextField(String s) {
+        tag.setText(s);
     }
 
     @Override
