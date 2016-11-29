@@ -7,13 +7,18 @@
     <!-- Strings related to login -->
     <string name="prompt_email">Email</string>
     <string name="prompt_password">Password (optional)</string>
-    <string name="action_sign_in">Sign in or register</string>
+    <string name="action_login">Login</string>
     <string name="action_sign_in_short">Sign in</string>
     <string name="error_invalid_email">This email address is invalid</string>
     <string name="error_invalid_password">This password is too short</string>
     <string name="error_incorrect_password">This password is incorrect</string>
     <string name="error_field_required">This field is required</string>
-    <string name="permission_rationale">"Contacts permissions are needed for providing email
-        completions."
-    </string>
+
+    <!-- Strings related to permission -->
+    <string name="ok">OK</string>
+    <string name="permision_available_camera">Camera Permission has been granted.</string>
+    <string name="permision_available_location">Location Permissions have been granted.</string>
+    <string name="permissions_not_granted">Permissions were not granted.</string>
+    <string name="permission_camera_rationale">Camera permission is needed to upload new photo.</string>
+    <string name="permission_location_rationale">Location permission is needed to find location.</string>
 </resources>

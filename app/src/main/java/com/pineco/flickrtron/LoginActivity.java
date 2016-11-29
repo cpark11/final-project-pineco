@@ -101,16 +101,15 @@ public class LoginActivity extends AppCompatActivity {
         });
 
 
-        Button mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
-        mEmailSignInButton.setOnClickListener(new OnClickListener() {
+        Button LoginButton = (Button) findViewById(R.id.login_button);
+        LoginButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 new Authenticator().execute();
             }
         });
 
-        mLoginFormView = findViewById(R.id.login_form);
-        mProgressView = findViewById(R.id.login_progress);
+
     }
     class Authenticator extends AsyncTask<Void, Void, String> {
 

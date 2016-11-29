@@ -5,6 +5,7 @@ xmlns:tools="http://schemas.android.com/tools"
 android:layout_width="match_parent"
 android:layout_height="match_parent"
 android:fitsSystemWindows="true"
+    android:id="@+id/coordinator_layout"
 tools:context="com.pineco.flickrtron.MainActivity">
 
 <android.support.design.widget.AppBarLayout
@@ -16,7 +17,7 @@ tools:context="com.pineco.flickrtron.MainActivity">
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
+        android:background="@color/lightGrey"
         app:popupTheme="@style/AppTheme.PopupOverlay" />
 
 </android.support.design.widget.AppBarLayout>

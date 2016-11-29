@@ -1,10 +1,13 @@
 package com.pineco.flickrtron;
 
 
+import android.Manifest;
 import android.content.Context;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -12,11 +15,13 @@ import android.media.Image;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.CoordinatorLayout;
 import android.provider.MediaStore;
 
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
@@ -34,6 +39,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
@@ -52,7 +58,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements LocationListener{
 
     EditText tag;
 //    TextView responseView;
@@ -66,33 +72,55 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_ACCESS_COARSE_LOCATION = 1;
 
     public static final String PREFS_NAME = "PrefsFile";
-    static final int REQUEST_IMAGE_CAPTURE = 1;
+    //static final int REQUEST_IMAGE_CAPTURE = 1;
+
+    //ID for camera permission request
+    private static final int REQUEST_CAMERA = 0;
+    private static final int REQUEST_LOCATION = 1;
+    //Permission to access geolocation
     public String myLocation = "";
+    public double latitude;
+    public double longitude;
+    public Criteria criteria;
+    public String bestProvider;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
         ImageButton locationButton = (ImageButton)findViewById(R.id.locationButton);
         locationButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) throws SecurityException{
-                Location location= locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                searchWithLocation(location.getLatitude(), location.getLongitude());
+            public void onClick(View v) {
+                getLocation();
                 //searchWithLocation(38.01538, -78.30396);
             }
         });
-        //Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        //setSupportActionBar(toolbar);
+//        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+//        setSupportActionBar(toolbar);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+                if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CAMERA)
+                        != PackageManager.PERMISSION_GRANTED) {
+
+                    // Camera permission has not been granted.
+                    requestCameraPermission();
+
+                } else {
+
+                    // Camera permissions is already available, show the camera preview.
+                    Log.i("INFO",
+                            "CAMERA permission has already been granted. Displaying camera preview.");
+                    Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+                        startActivityForResult(takePictureIntent, REQUEST_CAMERA);
+                }
+
+
+
                 }
             }
         });
@@ -122,10 +150,218 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * All Location finding code
+     * @param context
+     * @return
+     */
+    public static boolean isLocationEnabled(Context context)
+    {
+        //...............
+        return true;
+    }
+
+    protected void getLocation(){
+        if (isLocationEnabled(MainActivity.this)){
+            locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
+            criteria = new Criteria();
+            bestProvider = String.valueOf(locationManager.getBestProvider(criteria, true)).toString();
+
+            if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                // Fine Location Access permission has not been granted.
+                //Toast.makeText(getApplicationContext(), "permission 1", Toast.LENGTH_LONG).show();
+                requestLocationPermission();
+
+            }
+            else{
+                Location location = locationManager.getLastKnownLocation(bestProvider);
+                if (location != null) {
+                    Toast.makeText(getApplicationContext(), "get last known location", Toast.LENGTH_LONG).show();
+                    Log.e("TAG", "GPS is on");
+                    latitude = location.getLatitude();
+                    longitude = location.getLongitude();
+                    Toast.makeText(MainActivity.this, "latitude:" + latitude + " longitude:" + longitude, Toast.LENGTH_SHORT).show();
+                    searchWithLocation(latitude, longitude);
+                }
+                else {
+                    //If you do locationManager.GPS_PROVIDER in rice, for some reason it doesn't work/takes a long time
+                    locationManager.requestLocationUpdates(locationManager.NETWORK_PROVIDER, 0, 0, this);
+                }
+            }
+
+        }
+        else{
+            //prompt user to enable location....
+            //.................
+        }
+    }
+
+//    @Override
+//    protected void onPause() {
+//        super.onPause();
+//        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+//                != PackageManager.PERMISSION_GRANTED) {
+//            // Fine Location Access permission has not been granted.
+//
+//            requestLocationPermission();
+//
+//        }
+//        else {
+//            locationManager.removeUpdates(this);
+//        }
+//    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        //remove location callback:
+        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            // Fine Location Access permission has not been granted.
+
+            requestLocationPermission();
+
+        }
+        else{
+            locationManager.removeUpdates(this);
+            latitude = location.getLatitude();
+            longitude = location.getLongitude();
+            Toast.makeText(MainActivity.this, "latitude:" + latitude + " longitude:" + longitude, Toast.LENGTH_SHORT).show();
+            searchWithLocation(latitude, longitude);
+        }
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
+    }
+
     public void searchWithLocation(double lat, double longi){
+        Log.i("searchworks", "lat: " + lat + ", long: " + longi);
         String[] latlon = {lat+"",longi+""};
         new Locator().execute(latlon);
     }
+
+
+    /**
+     * All Permission related code
+     */
+    private void requestCameraPermission() {
+        Log.i("INFO", "CAMERA permission has NOT been granted. Requesting permission.");
+
+        // BEGIN_INCLUDE(camera_permission_request)
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                Manifest.permission.CAMERA)) {
+            // Provide an additional rationale to the user if the permission was not granted
+            // and the user would benefit from additional context for the use of the permission.
+            // For example if the user has previously denied the permission.
+            Log.i("INFO",
+                    "Displaying camera permission rationale to provide additional context.");
+            Snackbar.make(findViewById(R.id.coordinator_layout), R.string.permission_camera_rationale,
+                    Snackbar.LENGTH_INDEFINITE)
+                    .setAction(R.string.ok, new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            ActivityCompat.requestPermissions(MainActivity.this,
+                                    new String[]{Manifest.permission.CAMERA},
+                                    REQUEST_CAMERA);
+                        }
+                    })
+                    .show();
+        } else { // No explanation needed, we can request the permission.
+
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},
+                    REQUEST_CAMERA);
+        }
+        // END_INCLUDE(camera_permission_request)
+    }
+
+    /**
+     * Requests the Location permission.
+     * If the permission has been denied previously, a SnackBar will prompt the user to grant the
+     * permission, otherwise it is requested directly.
+     */
+    private void requestLocationPermission() {
+        Log.i("INFO", "LOCATION permission has NOT been granted. Requesting permission.");
+
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)) {
+            // Provide an additional rationale to the user if the permission was not granted
+            // and the user would benefit from additional context for the use of the permission.
+            // For example if the user has previously denied the permission.
+            Log.i("INFO",
+                    "Displaying location permission rationale to provide additional context.");
+            Snackbar.make(findViewById(R.id.coordinator_layout), R.string.permission_location_rationale,
+                    Snackbar.LENGTH_INDEFINITE)
+                    .setAction(R.string.ok, new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            ActivityCompat.requestPermissions(MainActivity.this,
+                                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                                    REQUEST_LOCATION);
+                        }
+                    })
+                    .show();
+        } else {// No explanation needed, we can request the permission.
+
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    REQUEST_LOCATION);
+        }
+    }
+
+    /**
+     * Callback received when a permissions request has been completed.
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+
+        if (requestCode == REQUEST_CAMERA) {
+
+            Log.i("INFO", "Received response for Camera permission request.");
+
+            // Check if the only required permission has been granted
+            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Camera permission has been granted, preview can be displayed
+                Log.i("INFO", "CAMERA permission has now been granted.");
+                Snackbar.make(findViewById(R.id.coordinator_layout), R.string.permision_available_camera,
+                        Snackbar.LENGTH_SHORT).show();
+            } else {
+                Log.i("INFO", "CAMERA permission was NOT granted.");
+                Snackbar.make(findViewById(R.id.coordinator_layout), R.string.permissions_not_granted,
+                        Snackbar.LENGTH_SHORT).show();
+
+            }
+
+        } else if (requestCode == REQUEST_LOCATION) {
+            Log.i("INFO", "Received response for location permissions request.");
+            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.i("INFO", "Location permissions were granted.");
+                Snackbar.make(findViewById(R.id.coordinator_layout), R.string.permision_available_location,
+                        Snackbar.LENGTH_SHORT)
+                        .show();
+            } else {
+                Log.i("INFO", "Location permissions were NOT granted.");
+                Snackbar.make(findViewById(R.id.coordinator_layout), R.string.permissions_not_granted,
+                        Snackbar.LENGTH_SHORT)
+                        .show();
+            }
+
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
