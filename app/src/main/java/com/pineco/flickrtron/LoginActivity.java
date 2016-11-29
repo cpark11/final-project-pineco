@@ -163,9 +163,8 @@ public class LoginActivity extends AppCompatActivity {
                 Log.d("myHash",AUTH_URL+frob+"&api_sig="+hashtext);
                 WebView myWebView = (WebView) findViewById(R.id.webview);
                 myWebView.loadUrl(AUTH_URL+frob+"&api_sig="+hashtext);
-                //Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(AUTH_URL+frob+"&api_sig="+hashtext));
-                //startActivity(browserIntent);
-                Intent intent = new Intent(getApplicationContext(),MainActivity.class);
+                Intent intent = new Intent(getApplicationContext(),VerifyActivity.class);
+                intent.putExtra("frob",frob);
                 startActivity(intent);
             }
             catch(Exception e) {
