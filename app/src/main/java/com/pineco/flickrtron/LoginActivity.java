@@ -73,10 +73,7 @@ public class LoginActivity extends AppCompatActivity {
      */
 
     // UI references.
-    private AutoCompleteTextView mEmailView;
-    private EditText mPasswordView;
-    private View mProgressView;
-    private View mLoginFormView;
+    String frob;
     static final String SECRET = "93398852639b6343";
     static final String API_KEY = "379c73dfd6eede56394f7dc6ab60921a";
     static final String FROB_URL = "https://flickr.com/services/rest/?api_key=379c73dfd6eede56394f7dc6ab60921a&method=flickr.auth.getFrob&api_sig=28ced0166fbd5c24c8bfe02bb91b2fb1";
@@ -86,26 +83,20 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-        // Set up the login form.
-        mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
-
-        mPasswordView = (EditText) findViewById(R.id.password);
-        mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
-                if (id == R.id.login || id == EditorInfo.IME_NULL) {
-                    return true;
-                }
-                return false;
-            }
-        });
-
-
         Button LoginButton = (Button) findViewById(R.id.login_button);
         LoginButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 new Authenticator().execute();
+            }
+        });
+        Button continueButton = (Button) findViewById(R.id.continue_button);
+        continueButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(),VerifyActivity.class);
+                intent.putExtra("frob",frob);
+                startActivity(intent);
             }
         });
 
@@ -114,7 +105,7 @@ public class LoginActivity extends AppCompatActivity {
     class Authenticator extends AsyncTask<Void, Void, String> {
 
         private Exception exception;
-        String frob;
+
         protected void onPreExecute() {
 
         }
@@ -150,7 +141,7 @@ public class LoginActivity extends AppCompatActivity {
             Log.i("INFO", response);
             try {
                 String[] rspLines = response.split("\n");
-                String frob = rspLines[2].substring(6,rspLines[2].length()-7);
+                frob = rspLines[2].substring(6,rspLines[2].length()-7);
                 String plaintext = SECRET+"api_key379c73dfd6eede56394f7dc6ab60921afrob"+frob+"permswrite";
                 MessageDigest m = MessageDigest.getInstance("MD5");
                 m.update(plaintext.getBytes());
@@ -163,9 +154,7 @@ public class LoginActivity extends AppCompatActivity {
                 Log.d("myHash",AUTH_URL+frob+"&api_sig="+hashtext);
                 WebView myWebView = (WebView) findViewById(R.id.webview);
                 myWebView.loadUrl(AUTH_URL+frob+"&api_sig="+hashtext);
-                Intent intent = new Intent(getApplicationContext(),VerifyActivity.class);
-                intent.putExtra("frob",frob);
-                startActivity(intent);
+
             }
             catch(Exception e) {
                 Log.e("ERROR", e.getMessage(), e);

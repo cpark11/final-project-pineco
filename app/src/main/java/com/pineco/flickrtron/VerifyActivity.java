@@ -5,9 +5,13 @@ import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.webkit.WebView;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -15,20 +19,33 @@ import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.Stack;
 
 public class VerifyActivity extends AppCompatActivity {
     private TextView alertMessage;
     private Button button;
     private String frob;
+    private String token;
     static final String SECRET = "93398852639b6343";
     static final String API_KEY = "379c73dfd6eede56394f7dc6ab60921a";
-    static final String TOKEN_URL = "http://flickr.com/services/rest/?method=flickr.auth.getToken";
+    static final String TOKEN_URL = "http://flickr.com/services/rest/?method=";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_verify);
         alertMessage = (TextView)findViewById(R.id.textView);
-        button = (Button)findViewById(R.id.button);
+        button = (Button)findViewById(R.id.button2);
+        button.setText("Confirm Identity");
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(),MainActivity.class);
+                intent.putExtra("token",token);
+                if(token!=null)
+                    startActivity(intent);
+            }
+        });
         frob = getIntent().getStringExtra("frob");
         new CheckAuth().execute();
 
@@ -41,18 +58,16 @@ public class VerifyActivity extends AppCompatActivity {
         }
 
         protected String doInBackground(Void... urls) {
-
             try {
-                String plaintext = SECRET+"api_key379c73dfd6eede56394f7dc6ab60921afrob"+frob+"methodflickr.auth.getToken";
-                MessageDigest m = MessageDigest.getInstance("MD5");
-                m.update(plaintext.getBytes());
-                byte[] digest = m.digest();
-                BigInteger bigInt = new BigInteger(1,digest);
-                String hashtext = bigInt.toString(16);
-                while(hashtext.length() < 32 ){
-                    hashtext = "0"+hashtext;
-                }
-                URL url = new URL(TOKEN_URL+"&api_key="+API_KEY+"&frob="+frob+"&api_sig="+hashtext);
+                Stack<String> stk = new Stack<>();
+                stk.push("nojsoncallback=1");
+                stk.push("method=flickr.auth.getToken");
+                stk.push("frob="+frob);
+                stk.push("format=json");
+                stk.push("api_key=379c73dfd6eede56394f7dc6ab60921a");
+                String s = MainActivity.generateSig(stk);
+                Log.d("url",s);
+                URL url = new URL(s);
                 HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
                 try {
                     BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
@@ -80,25 +95,25 @@ public class VerifyActivity extends AppCompatActivity {
             }
             Log.i("INFO", response);
             try {
-                String[] rspLines = response.split("\n");
-                String frob = rspLines[2].substring(6,rspLines[2].length()-7);
-                String plaintext = SECRET+"api_key379c73dfd6eede56394f7dc6ab60921afrob"+frob+"permswrite";
-                MessageDigest m = MessageDigest.getInstance("MD5");
-                m.update(plaintext.getBytes());
-                byte[] digest = m.digest();
-                BigInteger bigInt = new BigInteger(1,digest);
-                String hashtext = bigInt.toString(16);
-                while(hashtext.length() < 32 ){
-                    hashtext = "0"+hashtext;
-                }
-
+                JSONObject object = (JSONObject) new JSONTokener(response).nextValue();
+                JSONObject auth = object.getJSONObject("auth");
+                JSONObject token = auth.getJSONObject("token");
+                String myToken = token.getString("_content");
+                JSONObject user = auth.getJSONObject("user");
+                String fullname = user.getString("fullname");
+                setUserInfo(myToken,fullname);
             }
-            catch(Exception e) {
+            catch(Exception e){
                 Log.e("ERROR", e.getMessage(), e);
                 return;
             }
 
-
         }
+    }
+
+    private void setUserInfo(String myToken, String fullname) {
+        alertMessage.setText("Welcome,"+fullname+", your token is "+myToken);
+        this.token=myToken;
+
     }
 }

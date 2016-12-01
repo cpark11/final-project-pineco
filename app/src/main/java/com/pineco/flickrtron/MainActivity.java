@@ -54,9 +54,13 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Queue;
+import java.util.Stack;
 
 public class MainActivity extends AppCompatActivity implements LocationListener{
 
@@ -67,6 +71,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
 
 
     static final String API_KEY = "379c73dfd6eede56394f7dc6ab60921a";
+    static final String API_BASE = "https://flickr.com/services/rest/?";
     static final String API_URL = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
     static final String LOC_URL = "https://api.flickr.com/services/rest/?method=flickr.places.findbyLatLon&nojsoncallback=1&api_key=379c73dfd6eede56394f7dc6ab60921a";
     private static final int PERMISSION_ACCESS_COARSE_LOCATION = 1;
@@ -533,5 +538,32 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
         // Commit the edits!
         editor.commit();
     }
-
+    public static String generateSig(Stack<String> params){
+        String plaintext = "93398852639b6343";
+        String url = API_BASE;
+        String hashtext = "";
+        while(!params.isEmpty()){
+            String s = params.pop();
+            String[] arr = s.split("=");
+            plaintext += arr[0] + arr[1];
+            url += arr[0]+"="+arr[1];
+            url+="&";
+        }
+        try {
+            MessageDigest m = MessageDigest.getInstance("MD5");
+            m.update(plaintext.getBytes());
+            byte[] digest = m.digest();
+            BigInteger bigInt = new BigInteger(1, digest);
+            hashtext = bigInt.toString(16);
+            while (hashtext.length() < 32) {
+                hashtext = "0" + hashtext;
+            }
+        }
+        catch(Exception e) {
+            Log.e("ERROR", e.getMessage(), e);
+            return null;
+        }
+        url+="api_sig="+hashtext;
+        return url;
+    }
 }
