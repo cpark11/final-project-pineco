@@ -33,6 +33,7 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -57,14 +58,18 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Queue;
@@ -85,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
     static final String API_BASE = "https://flickr.com/services/rest/?";
     static final String API_URL = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
     static final String LOC_URL = "https://api.flickr.com/services/rest/?method=flickr.places.findbyLatLon&nojsoncallback=1&api_key=379c73dfd6eede56394f7dc6ab60921a";
+    static final String upload_url = "https://up.flickr.com/services/upload";
     private static final int PERMISSION_ACCESS_COARSE_LOCATION = 1;
 
     public static final String PREFS_NAME = "PrefsFile";
@@ -101,6 +107,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
     public String bestProvider;
     String mCurrentPhotoPath;
     Uri photoURI;
+    String b64;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -544,7 +551,71 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
 
         }
     }
+    class UploadToServer extends AsyncTask<String[], Void, String> {
+        private Exception exception;
+        String hashtext = "";
+        String query;
+        protected void onPreExecute() {
+            String photo = b64;
+            String ap = b64;
+            String plaintext = "93398852639b6343api_key"+API_KEY+"photo"+b64;
+            try {
+                MessageDigest m = MessageDigest.getInstance("MD5");
+                m.update(plaintext.getBytes());
+                byte[] digest = m.digest();
+                BigInteger bigInt = new BigInteger(1, digest);
+                hashtext = bigInt.toString(16);
+                while (hashtext.length() < 32) {
+                    hashtext = "0" + hashtext;
+                }
+                query = String.format("photo=%s&api_key=%s&api_sig=%s",
+                        URLEncoder.encode(photo, "UTF-8"),
+                        URLEncoder.encode(API_KEY, "UTF-8"),
+                        URLEncoder.encode(hashtext, "UTF-8"));
+            }
+            catch(Exception e) {
+                Log.e("ERROR", e.getMessage(), e);
+            }
 
+        }
+
+        protected String doInBackground(String[]... args) {
+            try {
+                URL url = new URL(upload_url);
+                HttpURLConnection client = (HttpURLConnection) url.openConnection();
+                try {
+                    client.setDoOutput(true);
+                    client.setChunkedStreamingMode(0);
+                    try (OutputStream output = client.getOutputStream()) {
+                        output.write(query.getBytes("UTF-8"));
+                    }
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(client.getInputStream()));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String line;
+                    while ((line = bufferedReader.readLine()) != null) {
+                        stringBuilder.append(line).append("\n");
+                    }
+                    bufferedReader.close();
+                    return stringBuilder.toString();
+
+                } catch (Exception e) {
+                    Log.v("log_tag", "Error in http connection " + e.toString());
+                }
+            }
+            catch (Exception e){
+                Log.e("ERROR", e.getMessage(), e);
+                return null;
+            }
+            return null;
+        }
+
+        protected void onPostExecute(String response) {
+            if(response == null) {
+                response = "THERE WAS AN ERROR";
+            }
+            Log.i("INFO", response);
+        }
+    }
     private void setTextField(String s) {
         tag.setText(s);
     }
@@ -594,6 +665,15 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
             //Toast.makeText(this, "Image saved to Camera album", Toast.LENGTH_LONG).show();
             Log.d("debug", filepath);
             Bitmap myBitmap = BitmapFactory.decodeFile(filepath);
+            ByteArrayOutputStream bao = new ByteArrayOutputStream();
+            myBitmap.compress(Bitmap.CompressFormat.JPEG, 90, bao);
+            byte[] ba = bao.toByteArray();
+            b64 = Base64.encodeToString(ba,Base64.DEFAULT);
+
+            Log.e("base64", "-----" + b64);
+
+            // Upload image to server
+            new UploadToServer().execute();
             ImageView captured = (ImageView) findViewById(R.id.new_image);
             captured.setImageBitmap(myBitmap);
             startActivity(new Intent(this, CaptionActivity.class));
