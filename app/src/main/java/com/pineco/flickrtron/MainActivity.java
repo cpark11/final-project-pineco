@@ -2,11 +2,15 @@ package com.pineco.flickrtron;
 
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -15,6 +19,7 @@ import android.media.Image;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.design.widget.CoordinatorLayout;
 import android.provider.MediaStore;
@@ -22,6 +27,7 @@ import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
@@ -51,8 +57,10 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
@@ -61,6 +69,9 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Queue;
 import java.util.Stack;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 
 public class MainActivity extends AppCompatActivity implements LocationListener{
 
@@ -88,6 +99,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
     public double longitude;
     public Criteria criteria;
     public String bestProvider;
+    String mCurrentPhotoPath;
+    Uri photoURI;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -122,10 +135,23 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
                     Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                     if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
                         startActivityForResult(takePictureIntent, REQUEST_CAMERA);
-                }
-
-
-
+//                        File photoFile = null;
+//                        try {
+//                            photoFile = createImageFile();
+//                        } catch (IOException ex) {
+//                            // Error occurred while creating the File
+//                            Log.e("FileCreation", "Error creating photo file.");
+//                        }
+//
+//                        // Continue only if the File was successfully created
+//                        if (photoFile != null) {
+//                            photoURI = FileProvider.getUriForFile(getApplicationContext(),
+//                                    "com.pineco.flickrtron.fileprovider",
+//                                    photoFile);
+//                            takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+//                            startActivityForResult(takePictureIntent, REQUEST_CAMERA);
+//                        }
+                    }
                 }
             }
         });
@@ -170,7 +196,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
         if (isLocationEnabled(MainActivity.this)){
             locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
             criteria = new Criteria();
-            bestProvider = String.valueOf(locationManager.getBestProvider(criteria, true)).toString();
+            bestProvider = (locationManager.getBestProvider(criteria, true)).toString();
 
             if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -522,6 +548,101 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
     private void setTextField(String s) {
         tag.setText(s);
     }
+
+
+//    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+//        if (requestCode == REQUEST_CAMERA && resultCode == Activity.RESULT_OK) {
+//            if (data != null)
+//            {
+//                Log.i("info", "is this working");
+//                Toast.makeText(getApplicationContext(), "this is actually working", Toast.LENGTH_LONG);
+//                Bitmap photo = (Bitmap) data.getExtras().get("data");
+//               // imageView.setImageBitmap(photo);
+//            }
+//
+//            //galleryAddPic();
+//        }
+//    }
+
+
+    //save full size photo
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+
+        // Save a file: path for use with ACTION_VIEW intents
+        mCurrentPhotoPath = image.getAbsolutePath();
+        return image;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        if (requestCode == REQUEST_CAMERA && resultCode == RESULT_OK) {
+            Uri imageUri = intent.getData();
+            String filepath = getRealPathFromURI(getApplicationContext(), imageUri);
+            Log.v("FINISHED PHOTO CAPTURE:", filepath);
+//            SharedPreferences.Editor editor = sharedpreferences.edit();
+//            editor.putString(FileLoc, filepath);
+//            editor.commit();
+            //Toast.makeText(this, "Image saved to Camera album", Toast.LENGTH_LONG).show();
+            Log.d("debug", filepath);
+            Bitmap myBitmap = BitmapFactory.decodeFile(filepath);
+            ImageView captured = (ImageView) findViewById(R.id.new_image);
+            captured.setImageBitmap(myBitmap);
+            startActivity(new Intent(this, CaptionActivity.class));
+//            finish();
+
+        }
+    }
+
+    public String getRealPathFromURI(Context context, Uri contentUri) {
+        Cursor cursor = null;
+        try {
+            String[] proj = { MediaStore.Images.Media.DATA };
+            cursor = context.getContentResolver().query(contentUri,  proj, null, null, null);
+            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+            cursor.moveToFirst();
+            return cursor.getString(column_index);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
+    //add pic to the user's gallery
+    private void galleryAddPic(){
+        Log.d("INFO", "Picture added to Gallery");
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        File f = new File(mCurrentPhotoPath);
+        Uri contentUri = Uri.fromFile(f);
+        mediaScanIntent.setData(contentUri);
+        this.sendBroadcast(mediaScanIntent);
+    }
+
+    // Save the activity state when it's going to stop.
+//    @Override
+//    protected void onSaveInstanceState(Bundle outState) {
+//        super.onSaveInstanceState(outState);
+//
+//        outState.putParcelable("photoURI", photoURI);
+//    }
+//
+//    // Recover the saved state when the activity is recreated.
+//    @Override
+//    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+//        super.onRestoreInstanceState(savedInstanceState);
+//
+//        photoURI = savedInstanceState.getParcelable("photoURI");
+//
+//    }
 
     @Override
     protected void onStop() {
