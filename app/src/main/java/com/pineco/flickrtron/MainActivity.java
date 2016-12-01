@@ -90,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
     static final String API_BASE = "https://flickr.com/services/rest/?";
     static final String API_URL = "https://api.flickr.com/services/rest/?method=flickr.photos.search";
     static final String LOC_URL = "https://api.flickr.com/services/rest/?method=flickr.places.findbyLatLon&nojsoncallback=1&api_key=379c73dfd6eede56394f7dc6ab60921a";
-    static final String upload_url = "https://up.flickr.com/services/upload";
+    static final String upload_url = "https://up.flickr.com/services/upload/";
     private static final int PERMISSION_ACCESS_COARSE_LOCATION = 1;
 
     public static final String PREFS_NAME = "PrefsFile";
@@ -108,6 +108,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
     String mCurrentPhotoPath;
     Uri photoURI;
     String b64;
+    String token;
+    String filepath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,7 +125,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
         });
 //        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
 //        setSupportActionBar(toolbar);
-
+        token = getIntent().getStringExtra("token");
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -558,7 +560,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
         protected void onPreExecute() {
             String photo = b64;
             String ap = b64;
-            String plaintext = "93398852639b6343api_key"+API_KEY+"photo"+b64;
+            String plaintext = "93398852639b6343api_key"+API_KEY+"auth_token"+token;
+            Log.d("myPREHASH",plaintext);
             try {
                 MessageDigest m = MessageDigest.getInstance("MD5");
                 m.update(plaintext.getBytes());
@@ -568,10 +571,13 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
                 while (hashtext.length() < 32) {
                     hashtext = "0" + hashtext;
                 }
-                query = String.format("photo=%s&api_key=%s&api_sig=%s",
-                        URLEncoder.encode(photo, "UTF-8"),
+                /*query = String.format("photo=%s&api_key=%s&auth_token=%s&api_sig=",
+                        URLEncoder.encode(b64, "UTF-8"),
                         URLEncoder.encode(API_KEY, "UTF-8"),
-                        URLEncoder.encode(hashtext, "UTF-8"));
+                        URLEncoder.encode(token, "UTF-8"));
+                query+=hashtext;*/
+                query = "photo="+b64+"&api_key="+API_KEY+"&auth_token="+token+"&api_sig="+hashtext;
+                Log.d("INFO",hashtext);
             }
             catch(Exception e) {
                 Log.e("ERROR", e.getMessage(), e);
@@ -584,6 +590,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
                 URL url = new URL(upload_url);
                 HttpURLConnection client = (HttpURLConnection) url.openConnection();
                 try {
+                    client.setRequestMethod("POST");
                     client.setDoOutput(true);
                     client.setChunkedStreamingMode(0);
                     try (OutputStream output = client.getOutputStream()) {
@@ -657,7 +664,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
         if (requestCode == REQUEST_CAMERA && resultCode == RESULT_OK) {
             Uri imageUri = intent.getData();
-            String filepath = getRealPathFromURI(getApplicationContext(), imageUri);
+            filepath = getRealPathFromURI(getApplicationContext(), imageUri);
             Log.v("FINISHED PHOTO CAPTURE:", filepath);
 //            SharedPreferences.Editor editor = sharedpreferences.edit();
 //            editor.putString(FileLoc, filepath);
@@ -674,9 +681,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
 
             // Upload image to server
             new UploadToServer().execute();
-            ImageView captured = (ImageView) findViewById(R.id.new_image);
-            captured.setImageBitmap(myBitmap);
-            startActivity(new Intent(this, CaptionActivity.class));
+            //ImageView captured = (ImageView) findViewById(R.id.new_image);
+            //captured.setImageBitmap(myBitmap);
+            //startActivity(new Intent(this, CaptionActivity.class));
 //            finish();
 
         }
