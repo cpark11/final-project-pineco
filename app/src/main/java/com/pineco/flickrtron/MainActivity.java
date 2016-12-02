@@ -118,6 +118,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
     String b64;
     String token;
     String nsid;
+    String name;
     Boolean justUploaded=false;
 
     @Override
@@ -135,6 +136,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
 //        setSupportActionBar(toolbar);
         token = getIntent().getStringExtra("token");
         nsid = getIntent().getStringExtra("nsid");
+        name = getIntent().getStringExtra("name");
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -680,7 +682,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
             }
             Log.i("INFO", response);
             justUploaded=true;
-            tag.setText("xiexieeric");
+            tag.setText(name);
             new RetrieveFeedTask().execute();
         }
     }

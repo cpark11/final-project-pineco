@@ -28,6 +28,7 @@ public class VerifyActivity extends AppCompatActivity {
     private String frob;
     private String token;
     private String nsid;
+    private String name;
     static final String SECRET = "93398852639b6343";
     static final String API_KEY = "379c73dfd6eede56394f7dc6ab60921a";
     static final String TOKEN_URL = "http://flickr.com/services/rest/?method=";
@@ -44,6 +45,7 @@ public class VerifyActivity extends AppCompatActivity {
                 Intent intent = new Intent(getApplicationContext(),MainActivity.class);
                 intent.putExtra("token",token);
                 intent.putExtra("nsid",nsid);
+                intent.putExtra("name",name);
                 if(token!=null)
                     startActivity(intent);
             }
@@ -116,6 +118,7 @@ public class VerifyActivity extends AppCompatActivity {
 
     private void setUserInfo(String myToken, String fullname, String nsid) {
         alertMessage.setText("Welcome,"+fullname+", your token is "+myToken);
+        this.name=fullname;
         this.token=myToken;
         this.nsid=nsid;
 
