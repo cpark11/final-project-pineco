@@ -114,7 +114,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
     Uri photoURI;
     String b64;
     String token;
-    String filepath;
+    String nsid;
+    Boolean justUploaded=false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,12 +126,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
             @Override
             public void onClick(View v) {
                 getLocation();
-                //searchWithLocation(38.01538, -78.30396);
             }
         });
 //        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
 //        setSupportActionBar(toolbar);
         token = getIntent().getStringExtra("token");
+        nsid = getIntent().getStringExtra("nsid");
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -151,11 +152,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
                         File photoFile = null;
                         try {
                             photoFile = createImageFile();
+
                         } catch (IOException ex) {
                             // Error occurred while creating the File
                             Log.e("FileCreation", "Error creating photo file.");
                         }
-
+                        startActivityForResult(takePictureIntent, REQUEST_CAMERA);
                         // Continue only if the File was successfully created
                         if (photoFile != null) {
                             photoURI = FileProvider.getUriForFile(getApplicationContext(),
@@ -438,7 +440,13 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
 
         protected String doInBackground(String... args) {
             try {
-                URL url = new URL(API_URL + "&per_page=5&nojsoncallback=1&format=json&tags=" + args[0] + "&api_key=" + API_KEY);
+                URL url;
+                if(justUploaded) {
+                    url = new URL(API_URL + "&per_page=5&nojsoncallback=1&format=json&user_id=" + nsid + "&api_key=" + API_KEY);
+                    justUploaded=false;
+                }
+                else
+                    url = new URL(API_URL + "&per_page=5&nojsoncallback=1&format=json&text=" + args[0] + "&api_key=" + API_KEY);
                 HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
                 try {
                     BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
@@ -655,6 +663,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
                 response = "THERE WAS AN ERROR";
             }
             Log.i("INFO", response);
+            justUploaded=true;
+            tag.setText("xiexieeric");
+            new RetrieveFeedTask().execute();
         }
     }
 
@@ -665,10 +676,10 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CAMERA && resultCode == Activity.RESULT_OK) {
+            Log.d("info","is this working too");
             if (data != null)
             {
                 Log.i("info", "is this working");
-                Toast.makeText(getApplicationContext(), "this is actually working", Toast.LENGTH_LONG);
                 Bitmap photo = (Bitmap) data.getExtras().get("data");
                // imageView.setImageBitmap(photo);
                 new UploadToServer().execute();
