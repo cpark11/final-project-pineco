@@ -14,15 +14,6 @@
     tools:context="com.pineco.flickrtron.MainActivity"
     tools:showIn="@layout/activity_main">
 
-    <EditText
-        android:id="@+id/tag"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="text"
-        android:background="@color/lightGrey"
-        android:imeOptions="actionDone"
-        android:hint="Current Location"/>
-
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"
@@ -39,16 +30,4 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
-    <ImageButton
-        android:layout_width="15dp"
-        android:layout_height="wrap_content"
-        android:id="@+id/locationButton"
-        android:layout_gravity="end"
-        android:layout_alignRight="@id/tag"
-        android:layout_alignTop="@id/tag"
-        android:layout_alignBottom="@id/tag"
-        android:clickable="true"
-        style="@style/Base.Widget.AppCompat.Button.Borderless"
-        android:background="@color/lightGrey"
-        android:src="@drawable/map_marker"/>
 </RelativeLayout>
