@@ -18,8 +18,10 @@ import android.location.LocationManager;
 import android.media.Image;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.design.widget.CoordinatorLayout;
 import android.provider.MediaStore;
@@ -33,6 +35,7 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -170,24 +173,21 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
             }
         });
 
+        progressBar = (ProgressBar) findViewById(R.id.progressBar);
         // Restore preferences
         SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
         String editTextValue = settings.getString("editTextValue", "none");
-
-        EditText search = (EditText)findViewById(R.id.tag);
-        search.setText(editTextValue);
-
-//        responseView = (TextView) findViewById(R.id.responseView);
         tag = (EditText) findViewById(R.id.tag);
-        progressBar = (ProgressBar) findViewById(R.id.progressBar);
+        tag.setText(editTextValue);
+        new RetrieveFeedTask().execute(tag.getText().toString());
 
         // Set Search EditText onActionDone Listener
-        search.setOnEditorActionListener(new EditText.OnEditorActionListener() {
+        tag.setOnEditorActionListener(new EditText.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     new RetrieveFeedTask().execute(tag.getText().toString());
-                    return true;
+                    //return true;
                 }
                 return false;
             }
@@ -202,8 +202,24 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
      */
     public static boolean isLocationEnabled(Context context)
     {
-        //...............
-        return true;
+        int locationMode = 0;
+        String locationProviders;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT){
+            try {
+                locationMode = Settings.Secure.getInt(context.getContentResolver(), Settings.Secure.LOCATION_MODE);
+
+            } catch (Settings.SettingNotFoundException e) {
+                e.printStackTrace();
+                return false;
+            }
+
+            return locationMode != Settings.Secure.LOCATION_MODE_OFF;
+
+        }else{
+            locationProviders = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
+            return !TextUtils.isEmpty(locationProviders);
+        }
     }
 
     protected void getLocation(){
@@ -215,7 +231,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
             if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION)
                     != PackageManager.PERMISSION_GRANTED) {
                 // Fine Location Access permission has not been granted.
-                //Toast.makeText(getApplicationContext(), "permission 1", Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(), "permission 1", Toast.LENGTH_LONG).show();
                 requestLocationPermission();
 
             }
