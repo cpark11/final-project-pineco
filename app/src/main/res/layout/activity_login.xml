@@ -68,7 +68,7 @@
                 android:padding="1dp"
                 android:textColor="#ffffff"
                 android:textSize="15dp"
-                android:text="Continue"
+                android:text="CONTINUE"
                 android:textStyle="bold"/>
         </LinearLayout>
     </ScrollView>

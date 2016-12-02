@@ -8,14 +8,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.media.Image;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -23,7 +19,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
-import android.support.design.widget.CoordinatorLayout;
 import android.provider.MediaStore;
 
 import android.support.design.widget.FloatingActionButton;
@@ -31,12 +26,9 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
-import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -44,16 +36,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
-import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationServices;
-import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -61,14 +48,9 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -77,13 +59,10 @@ import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
-import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Queue;
 import java.util.Stack;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity implements LocationListener{
@@ -183,7 +162,13 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
         String editTextValue = settings.getString("editTextValue", "none");
         tag = (EditText) findViewById(R.id.tag);
         tag.setText(editTextValue);
-        new RetrieveFeedTask().execute(tag.getText().toString().replace(" ", "_"));
+        Log.d("debug", tag.getText().toString());
+        if(tag.getText().toString().equals(name)) {
+            justUploaded=true;
+            new RetrieveFeedTask().execute(nsid);
+        }
+        else
+            new RetrieveFeedTask().execute(tag.getText().toString().replace(" ", "_"));
 
         // Set Search EditText onActionDone Listener
         tag.setOnEditorActionListener(new EditText.OnEditorActionListener() {
@@ -191,7 +176,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     new RetrieveFeedTask().execute(tag.getText().toString());
-                    //return true;
+                    return true;
                 }
                 return false;
             }
@@ -261,21 +246,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
             //.................
         }
     }
-
-//    @Override
-//    protected void onPause() {
-//        super.onPause();
-//        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION)
-//                != PackageManager.PERMISSION_GRANTED) {
-//            // Fine Location Access permission has not been granted.
-//
-//            requestLocationPermission();
-//
-//        }
-//        else {
-//            locationManager.removeUpdates(this);
-//        }
-//    }
 
     @Override
     public void onLocationChanged(Location location) {
@@ -519,12 +489,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
                 DataAdapter adapter = new DataAdapter(getApplicationContext(),imageList);
                 recyclerView.setAdapter(adapter);
 
-
-//                JSONObject p1 = photoArray.getJSONObject(0);
-//                url = "http://farm" + p1.get("farm") + ".static.flickr.com/"
-//                        + p1.getString("server") + "/" + p1.getString("id") + "_" + p1.getString("secret") + "_m.jpg";
-                //populateImages();
-
             } catch (JSONException e) {
                 setTextField("No Photos");
             }
@@ -706,12 +670,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
             if (data != null)
             {
                 Log.i("info", "is this working");
-                Bitmap photo = (Bitmap) data.getExtras().get("data");
-               // imageView.setImageBitmap(photo);
                 new UploadToServer().execute();
             }
-
-            //galleryAddPic();
         }
     }
 
@@ -733,92 +693,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
         return image;
     }
 
-//    @Override
-//    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
-//        if (requestCode == REQUEST_CAMERA && resultCode == RESULT_OK) {
-//            File file = new File("Android/data/com.pineco.flickrton/files/Pictures", "photo.jpeg");
-//            Uri uri = Uri.fromFile(file);
-//            Bitmap bitmap;
-//            try {
-//                bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
-//                ByteArrayOutputStream bao = new ByteArrayOutputStream();
-//                bitmap.compress(Bitmap.CompressFormat.JPEG, 10, bao);
-//                byte[] ba = bao.toByteArray();
-//                b64 = Base64.encodeToString(ba,Base64.DEFAULT);
-//                new UploadToServer().execute();
-//            } catch (FileNotFoundException e) {
-//                // TODO Auto-generated catch block
-//                e.printStackTrace();
-//            } catch (IOException e) {
-//                // TODO Auto-generated catch block
-//                e.printStackTrace();
-//            }
-//
-//            /*Uri imageUri = intent.getData();
-//            filepath = getRealPathFromURI(getApplicationContext(), imageUri);
-//            Bitmap myBitmap = BitmapFactory.decodeFile(filepath);
-//            ByteArrayOutputStream bao = new ByteArrayOutputStream();
-//            myBitmap.compress(Bitmap.CompressFormat.JPEG, 90, bao);
-//            byte[] ba = bao.toByteArray();
-//            b64 = Base64.encodeToString(ba,Base64.DEFAULT);
-//
-//            Log.e("base64", "-----" + b64);*/
-//
-//            // Upload image to server
-//
-//            //ImageView captured = (ImageView) findViewById(R.id.new_image);
-//            //captured.setImageBitmap(myBitmap);
-//            //startActivity(new Intent(this, CaptionActivity.class));
-////            finish();
-//
-//        }
-//    }
-
-    public String getRealPathFromURI(Context context, Uri contentUri) {
-        Cursor cursor = null;
-        try {
-            String[] proj = { MediaStore.Images.Media.DATA };
-            cursor = context.getContentResolver().query(contentUri,  proj, null, null, null);
-            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-            cursor.moveToFirst();
-            return cursor.getString(column_index);
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-    }
-
-    //add pic to the user's gallery
-    private void galleryAddPic(){
-        Log.d("INFO", "Picture added to Gallery");
-        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        File f = new File(mCurrentPhotoPath);
-        Uri contentUri = Uri.fromFile(f);
-        mediaScanIntent.setData(contentUri);
-        this.sendBroadcast(mediaScanIntent);
-    }
-
-    // Save the activity state when it's going to stop.
-//    @Override
-//    protected void onSaveInstanceState(Bundle outState) {
-//        outState.putString("tag", tag.getText().toString());
-//        Log.d("debug gps rotation", tag.getText().toString());
-//        super.onSaveInstanceState(outState);
-//
-//        outState.putParcelable("photoURI", photoURI);
-//    }
-//
-//    // Recover the saved state when the activity is recreated.
-//    @Override
-//    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
-//        super.onRestoreInstanceState(savedInstanceState);
-//        String savedTag = savedInstanceState.getString("tag");
-//        Log.d("debugtag", savedTag);
-//        tag.setText(savedTag);
-//        photoURI = savedInstanceState.getParcelable("photoURI");
-//
-//    }
 
     @Override
     protected void onPause() {
