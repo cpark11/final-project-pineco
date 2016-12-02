@@ -58,17 +58,22 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -136,31 +141,29 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
                     // Camera permission has not been granted.
                     requestCameraPermission();
 
-                } else {
+                }
 
                     // Camera permissions is already available, show the camera preview.
                     Log.i("INFO",
                             "CAMERA permission has already been granted. Displaying camera preview.");
                     Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                     if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-                        startActivityForResult(takePictureIntent, REQUEST_CAMERA);
-//                        File photoFile = null;
-//                        try {
-//                            photoFile = createImageFile();
-//                        } catch (IOException ex) {
-//                            // Error occurred while creating the File
-//                            Log.e("FileCreation", "Error creating photo file.");
-//                        }
-//
-//                        // Continue only if the File was successfully created
-//                        if (photoFile != null) {
-//                            photoURI = FileProvider.getUriForFile(getApplicationContext(),
-//                                    "com.pineco.flickrtron.fileprovider",
-//                                    photoFile);
-//                            takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-//                            startActivityForResult(takePictureIntent, REQUEST_CAMERA);
-//                        }
-                    }
+                        File photoFile = null;
+                        try {
+                            photoFile = createImageFile();
+                        } catch (IOException ex) {
+                            // Error occurred while creating the File
+                            Log.e("FileCreation", "Error creating photo file.");
+                        }
+
+                        // Continue only if the File was successfully created
+                        if (photoFile != null) {
+                            photoURI = FileProvider.getUriForFile(getApplicationContext(),
+                                    "com.pineco.flickrtron.fileprovider",
+                                    photoFile);
+                            takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                            startActivityForResult(takePictureIntent, REQUEST_CAMERA);
+                        }
                 }
             }
         });
@@ -553,7 +556,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
 
         }
     }
-    class UploadToServer extends AsyncTask<String[], Void, String> {
+    class UploadToServer extends AsyncTask<Void, Void, String> {
         private Exception exception;
         String hashtext = "";
         String query;
@@ -561,7 +564,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
             String photo = b64;
             String ap = b64;
             String plaintext = "93398852639b6343api_key"+API_KEY+"auth_token"+token;
-            Log.d("myPREHASH",plaintext);
             try {
                 MessageDigest m = MessageDigest.getInstance("MD5");
                 m.update(plaintext.getBytes());
@@ -571,13 +573,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
                 while (hashtext.length() < 32) {
                     hashtext = "0" + hashtext;
                 }
-                /*query = String.format("photo=%s&api_key=%s&auth_token=%s&api_sig=",
-                        URLEncoder.encode(b64, "UTF-8"),
-                        URLEncoder.encode(API_KEY, "UTF-8"),
-                        URLEncoder.encode(token, "UTF-8"));
-                query+=hashtext;*/
-                query = "photo="+b64+"&api_key="+API_KEY+"&auth_token="+token+"&api_sig="+hashtext;
-                Log.d("INFO",hashtext);
+
             }
             catch(Exception e) {
                 Log.e("ERROR", e.getMessage(), e);
@@ -585,16 +581,54 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
 
         }
 
-        protected String doInBackground(String[]... args) {
+        protected String doInBackground(Void... urls) {
+            String boundary = Long.toHexString(System.currentTimeMillis());
+            String CRLF = "\r\n";
+            File binaryFile = new File(mCurrentPhotoPath);
             try {
                 URL url = new URL(upload_url);
-                HttpURLConnection client = (HttpURLConnection) url.openConnection();
+                URLConnection client = url.openConnection();
                 try {
-                    client.setRequestMethod("POST");
+                    client.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+                    client.setDoInput(true);
                     client.setDoOutput(true);
-                    client.setChunkedStreamingMode(0);
-                    try (OutputStream output = client.getOutputStream()) {
-                        output.write(query.getBytes("UTF-8"));
+                    try (
+                            OutputStream output = client.getOutputStream();
+                            PrintWriter writer = new PrintWriter(new OutputStreamWriter(output, "UTF-8"), true);
+                    ) {
+                        // Send normal param.
+                        writer.append("--" + boundary).append(CRLF);
+                        writer.append("Content-Disposition: form-data; name=\"api_key\"").append(CRLF);
+                        writer.append("Content-Type: text/plain; charset=" + "UTF-8").append(CRLF);
+                        writer.append(CRLF).append(API_KEY).append(CRLF).flush();
+                        // Send normal param.
+                        writer.append("--" + boundary).append(CRLF);
+                        writer.append("Content-Disposition: form-data; name=\"auth_token\"").append(CRLF);
+                        writer.append("Content-Type: text/plain; charset=" + "UTF-8").append(CRLF);
+                        writer.append(CRLF).append(token).append(CRLF).flush();
+                        // Send normal param.
+                        writer.append("--" + boundary).append(CRLF);
+                        writer.append("Content-Disposition: form-data; name=\"api_sig\"").append(CRLF);
+                        writer.append("Content-Type: text/plain; charset=" + "UTF-8").append(CRLF);
+                        writer.append(CRLF).append(hashtext).append(CRLF).flush();
+                        // Send binary file.
+                        writer.append("--" + boundary).append(CRLF);
+                        writer.append("Content-Disposition: form-data; name=\"photo\"; filename=\"" + binaryFile.getName()  + "\"").append(CRLF);
+                        writer.append("Content-Type: " + URLConnection.guessContentTypeFromName(binaryFile.getName())).append(CRLF);
+                        writer.append("Content-Transfer-Encoding: binary").append(CRLF);
+                        writer.append(CRLF).flush();
+                        FileInputStream inputStream = new FileInputStream(binaryFile);
+                        byte[] buffer = new byte[4096];
+                        int bytesRead = -1;
+                        while ((bytesRead = inputStream.read(buffer)) != -1) {
+                            output.write(buffer, 0, bytesRead);
+                        }
+                        output.flush(); // Important before continuing with writer!
+                        inputStream.close();
+                        writer.append(CRLF).flush(); // CRLF is important! It indicates end of boundary.
+
+                        // End of multipart/form-data.
+                        writer.append("--" + boundary + "--").append(CRLF).flush();
                     }
                     BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(client.getInputStream()));
                     StringBuilder stringBuilder = new StringBuilder();
@@ -623,24 +657,26 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
             Log.i("INFO", response);
         }
     }
+
     private void setTextField(String s) {
         tag.setText(s);
     }
 
 
-//    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-//        if (requestCode == REQUEST_CAMERA && resultCode == Activity.RESULT_OK) {
-//            if (data != null)
-//            {
-//                Log.i("info", "is this working");
-//                Toast.makeText(getApplicationContext(), "this is actually working", Toast.LENGTH_LONG);
-//                Bitmap photo = (Bitmap) data.getExtras().get("data");
-//               // imageView.setImageBitmap(photo);
-//            }
-//
-//            //galleryAddPic();
-//        }
-//    }
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CAMERA && resultCode == Activity.RESULT_OK) {
+            if (data != null)
+            {
+                Log.i("info", "is this working");
+                Toast.makeText(getApplicationContext(), "this is actually working", Toast.LENGTH_LONG);
+                Bitmap photo = (Bitmap) data.getExtras().get("data");
+               // imageView.setImageBitmap(photo);
+                new UploadToServer().execute();
+            }
+
+            //galleryAddPic();
+        }
+    }
 
 
     //save full size photo
@@ -660,34 +696,46 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
         return image;
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
-        if (requestCode == REQUEST_CAMERA && resultCode == RESULT_OK) {
-            Uri imageUri = intent.getData();
-            filepath = getRealPathFromURI(getApplicationContext(), imageUri);
-            Log.v("FINISHED PHOTO CAPTURE:", filepath);
-//            SharedPreferences.Editor editor = sharedpreferences.edit();
-//            editor.putString(FileLoc, filepath);
-//            editor.commit();
-            //Toast.makeText(this, "Image saved to Camera album", Toast.LENGTH_LONG).show();
-            Log.d("debug", filepath);
-            Bitmap myBitmap = BitmapFactory.decodeFile(filepath);
-            ByteArrayOutputStream bao = new ByteArrayOutputStream();
-            myBitmap.compress(Bitmap.CompressFormat.JPEG, 90, bao);
-            byte[] ba = bao.toByteArray();
-            b64 = Base64.encodeToString(ba,Base64.DEFAULT);
-
-            Log.e("base64", "-----" + b64);
-
-            // Upload image to server
-            new UploadToServer().execute();
-            //ImageView captured = (ImageView) findViewById(R.id.new_image);
-            //captured.setImageBitmap(myBitmap);
-            //startActivity(new Intent(this, CaptionActivity.class));
-//            finish();
-
-        }
-    }
+//    @Override
+//    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+//        if (requestCode == REQUEST_CAMERA && resultCode == RESULT_OK) {
+//            File file = new File("Android/data/com.pineco.flickrton/files/Pictures", "photo.jpeg");
+//            Uri uri = Uri.fromFile(file);
+//            Bitmap bitmap;
+//            try {
+//                bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+//                ByteArrayOutputStream bao = new ByteArrayOutputStream();
+//                bitmap.compress(Bitmap.CompressFormat.JPEG, 10, bao);
+//                byte[] ba = bao.toByteArray();
+//                b64 = Base64.encodeToString(ba,Base64.DEFAULT);
+//                new UploadToServer().execute();
+//            } catch (FileNotFoundException e) {
+//                // TODO Auto-generated catch block
+//                e.printStackTrace();
+//            } catch (IOException e) {
+//                // TODO Auto-generated catch block
+//                e.printStackTrace();
+//            }
+//
+//            /*Uri imageUri = intent.getData();
+//            filepath = getRealPathFromURI(getApplicationContext(), imageUri);
+//            Bitmap myBitmap = BitmapFactory.decodeFile(filepath);
+//            ByteArrayOutputStream bao = new ByteArrayOutputStream();
+//            myBitmap.compress(Bitmap.CompressFormat.JPEG, 90, bao);
+//            byte[] ba = bao.toByteArray();
+//            b64 = Base64.encodeToString(ba,Base64.DEFAULT);
+//
+//            Log.e("base64", "-----" + b64);*/
+//
+//            // Upload image to server
+//
+//            //ImageView captured = (ImageView) findViewById(R.id.new_image);
+//            //captured.setImageBitmap(myBitmap);
+//            //startActivity(new Intent(this, CaptionActivity.class));
+////            finish();
+//
+//        }
+//    }
 
     public String getRealPathFromURI(Context context, Uri contentUri) {
         Cursor cursor = null;
@@ -715,21 +763,21 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
     }
 
     // Save the activity state when it's going to stop.
-//    @Override
-//    protected void onSaveInstanceState(Bundle outState) {
-//        super.onSaveInstanceState(outState);
-//
-//        outState.putParcelable("photoURI", photoURI);
-//    }
-//
-//    // Recover the saved state when the activity is recreated.
-//    @Override
-//    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
-//        super.onRestoreInstanceState(savedInstanceState);
-//
-//        photoURI = savedInstanceState.getParcelable("photoURI");
-//
-//    }
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        outState.putParcelable("photoURI", photoURI);
+    }
+
+    // Recover the saved state when the activity is recreated.
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        photoURI = savedInstanceState.getParcelable("photoURI");
+
+    }
 
     @Override
     protected void onStop() {
