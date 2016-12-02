@@ -120,6 +120,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
     String nsid;
     String name;
     Boolean justUploaded=false;
+    SharedPreferences settings;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -177,11 +179,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
 
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
         // Restore preferences
-        SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+        settings = getSharedPreferences(PREFS_NAME, 0);
         String editTextValue = settings.getString("editTextValue", "none");
         tag = (EditText) findViewById(R.id.tag);
         tag.setText(editTextValue);
-        new RetrieveFeedTask().execute(tag.getText().toString());
+        new RetrieveFeedTask().execute(tag.getText().toString().replace(" ", "_"));
 
         // Set Search EditText onActionDone Listener
         tag.setOnEditorActionListener(new EditText.OnEditorActionListener() {
@@ -683,6 +685,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
             Log.i("INFO", response);
             justUploaded=true;
             tag.setText(name);
+            settings = getSharedPreferences(PREFS_NAME, 0);
+            SharedPreferences.Editor editor = settings.edit();
+            editor.putString("editTextValue", name);
+
+            // Commit the edits!
+            editor.commit();
             new RetrieveFeedTask().execute();
         }
     }
@@ -792,33 +800,36 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
     }
 
     // Save the activity state when it's going to stop.
+//    @Override
+//    protected void onSaveInstanceState(Bundle outState) {
+//        outState.putString("tag", tag.getText().toString());
+//        Log.d("debug gps rotation", tag.getText().toString());
+//        super.onSaveInstanceState(outState);
+//
+//        outState.putParcelable("photoURI", photoURI);
+//    }
+//
+//    // Recover the saved state when the activity is recreated.
+//    @Override
+//    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+//        super.onRestoreInstanceState(savedInstanceState);
+//        String savedTag = savedInstanceState.getString("tag");
+//        Log.d("debugtag", savedTag);
+//        tag.setText(savedTag);
+//        photoURI = savedInstanceState.getParcelable("photoURI");
+//
+//    }
+
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-
-        outState.putParcelable("photoURI", photoURI);
-    }
-
-    // Recover the saved state when the activity is recreated.
-    @Override
-    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-
-        photoURI = savedInstanceState.getParcelable("photoURI");
-
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
+    protected void onPause() {
+        super.onPause();
 
         // Using Preferences
         // We need an Editor object to make preference changes.
         // All objects are from android.context.Context
         SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
         SharedPreferences.Editor editor = settings.edit();
-        EditText editText = (EditText) findViewById(R.id.tag);
-        editor.putString("editTextValue", editText.getText().toString());
+        editor.putString("editTextValue", tag.getText().toString());
 
         // Commit the edits!
         editor.commit();
