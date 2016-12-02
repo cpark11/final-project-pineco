@@ -31,6 +31,7 @@ import android.webkit.WebView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -78,6 +79,8 @@ public class LoginActivity extends AppCompatActivity {
     static final String API_KEY = "379c73dfd6eede56394f7dc6ab60921a";
     static final String FROB_URL = "https://flickr.com/services/rest/?api_key=379c73dfd6eede56394f7dc6ab60921a&method=flickr.auth.getFrob&api_sig=28ced0166fbd5c24c8bfe02bb91b2fb1";
     static final String AUTH_URL = "https://flickr.com/services/auth/?api_key=379c73dfd6eede56394f7dc6ab60921a&perms=write&frob=";
+    CheckBox checkbox;
+    Button continueButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,13 +93,25 @@ public class LoginActivity extends AppCompatActivity {
                 new Authenticator().execute();
             }
         });
-        Button continueButton = (Button) findViewById(R.id.continue_button);
+        checkbox = (CheckBox) findViewById(R.id.chkWindows);
+
+        continueButton = (Button) findViewById(R.id.continue_button);
+        continueButton.setVisibility(View.INVISIBLE);
         continueButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(getApplicationContext(),VerifyActivity.class);
                 intent.putExtra("frob",frob);
                 startActivity(intent);
+            }
+        });
+        checkbox.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(checkbox.isChecked())
+                    continueButton.setVisibility(View.VISIBLE);
+                else
+                    continueButton.setVisibility(View.INVISIBLE);
             }
         });
 
