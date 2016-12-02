@@ -27,6 +27,7 @@ public class VerifyActivity extends AppCompatActivity {
     private Button button;
     private String frob;
     private String token;
+    private String nsid;
     static final String SECRET = "93398852639b6343";
     static final String API_KEY = "379c73dfd6eede56394f7dc6ab60921a";
     static final String TOKEN_URL = "http://flickr.com/services/rest/?method=";
@@ -42,6 +43,7 @@ public class VerifyActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Intent intent = new Intent(getApplicationContext(),MainActivity.class);
                 intent.putExtra("token",token);
+                intent.putExtra("nsid",nsid);
                 if(token!=null)
                     startActivity(intent);
             }
@@ -101,7 +103,8 @@ public class VerifyActivity extends AppCompatActivity {
                 String myToken = token.getString("_content");
                 JSONObject user = auth.getJSONObject("user");
                 String fullname = user.getString("fullname");
-                setUserInfo(myToken,fullname);
+                String nsid = user.getString("nsid");
+                setUserInfo(myToken,fullname,nsid);
             }
             catch(Exception e){
                 Log.e("ERROR", e.getMessage(), e);
@@ -111,9 +114,10 @@ public class VerifyActivity extends AppCompatActivity {
         }
     }
 
-    private void setUserInfo(String myToken, String fullname) {
+    private void setUserInfo(String myToken, String fullname, String nsid) {
         alertMessage.setText("Welcome,"+fullname+", your token is "+myToken);
         this.token=myToken;
+        this.nsid=nsid;
 
     }
 }
